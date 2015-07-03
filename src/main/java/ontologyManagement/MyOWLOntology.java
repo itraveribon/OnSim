@@ -35,7 +35,12 @@ import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLClassExpression;
 import org.semanticweb.owlapi.model.OWLDataFactory;
+import org.semanticweb.owlapi.model.OWLLiteral;
+import org.semanticweb.owlapi.model.OWLLogicalEntity;
+import org.semanticweb.owlapi.model.OWLNamedIndividual;
+import org.semanticweb.owlapi.model.OWLObjectHasValue;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
+import org.semanticweb.owlapi.model.OWLObjectPropertyAssertionAxiom;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -51,6 +56,9 @@ import org.semanticweb.owlapi.reasoner.TimedConsoleProgressMonitor;
 import org.semanticweb.owlapi.reasoner.structural.StructuralReasoner;
 import org.semanticweb.owlapi.reasoner.structural.StructuralReasonerFactory;
 
+import test.ComparisonResult;
+import test.DatasetTest;
+
 import com.clarkparsia.owlapi.explanation.DefaultExplanationGenerator;
 import com.clarkparsia.owlapi.explanation.util.ExplanationProgressMonitor;
 import com.clarkparsia.owlapi.explanation.util.SilentExplanationProgressMonitor;
@@ -60,22 +68,23 @@ public class MyOWLOntology {
 	private OWLOntology o;
 	//private Set<OWLConcept> concepts;
 	private Map<String, OWLConcept> concepts;
+
 	private Map<OWLClass, Map<OWLClass, Integer>> conceptDistances;
 	private Map<String, OWLRelation> relations;
 	private OWLReasoner reasoner;
 	private OWLDataFactory factory;
-	//private DefaultExplanationGenerator expl;
-	ExplanationGenerator<OWLAxiom> expl;
+	private ExplanationGenerator<OWLAxiom> expl;
+	private String prefix;
 	
 	
-	public MyOWLOntology(String ontFile)
+	public MyOWLOntology(String ontFile, String pr)
 	{
-		//concepts = new HashSet<OWLConcept>();
 		concepts = new HashMap<String,OWLConcept>();
 		relations = new HashMap<String,OWLRelation>();
 		OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
 		factory = manager.getOWLDataFactory();
 		conceptDistances = new HashMap<OWLClass, Map<OWLClass, Integer>>();
+		prefix = pr;
     	
 		
 		try {
@@ -103,12 +112,6 @@ public class MyOWLOntology {
 			}
 			classes = null; //Finished with classes
 			System.out.println("Classes read");
-
-            //links = getOWLLinks(concepts, relations);
-            //getOWLLinks(concepts, relations);
-            //System.out.println("Links read");
-            
-            //preCalculateProfs();
 		} catch (OWLOntologyCreationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -119,6 +122,12 @@ public class MyOWLOntology {
 	{
 		return o;
 	}
+	
+	public String getOntologyPrefix()
+	{
+		return prefix;
+	}
+	
 	public Set<OWLLink> getConceptOWLLink (OWLConcept c)
 	{
 		Set<OWLLink> ownLinks = new HashSet<OWLLink>();
@@ -139,6 +148,7 @@ public class MyOWLOntology {
 		}
 		return ownLinks;
 	}
+	
 	
 	private void getOWLLinks(Set<OWLConcept> classes, Set<OWLRelation> objectProperties)
 	{
@@ -229,42 +239,6 @@ public class MyOWLOntology {
         	explanations = Collections.emptySet();
         	return explanations;
         }
-        /*if (reasoner.getEquivalentClasses(cexp).contains(a))
-        {
-        	explanations = new HashSet<OWLExplanation>();
-        	OWLEquivalentClassesAxiom equivalence = factory.getOWLEquivalentClassesAxiom(a, cexp);
-        	ExecutorService executor = Executors.newCachedThreadPool();
-        	explain.setAxiom(equivalence);
-        	Future<Object> future = executor.submit(explain);
-        	try {
-        		@SuppressWarnings("unchecked")
-				Set<Set<OWLAxiom>> expAxioms = (Set<Set<OWLAxiom>>) future.get(10, TimeUnit.SECONDS);
-        		for (Iterator<Set<OWLAxiom>> i = expAxioms.iterator(); i.hasNext();)
-            	{
-            		OWLExplanation e;
-    				try {
-    					e = new OWLExplanation(i.next(), this);
-    					explanations.add(e);
-    				} catch (Exception e1) {
-    					// TODO Auto-generated catch block
-    					e1.printStackTrace();
-    				}
-            	}
-			} catch (InterruptedException e2) {
-				// TODO Auto-generated catch block
-				e2.printStackTrace();
-			} catch (ExecutionException e2) {
-				// TODO Auto-generated catch block
-				e2.printStackTrace();
-			} catch (TimeoutException e2) {
-				// TODO Auto-generated catch block
-				e2.printStackTrace();
-			}
-        	finally {
-        		   future.cancel(true); // may or may not desire this
-        	}
-        	//Set<Set<OWLAxiom>> expAxioms = expl.getExplanations(equivalence, 1);
-        }*/
         if (reasoner.isEntailed(linkAxiom)) //If the axiom is explicit in the ontology does not have explanation
         {
         	explanations = new HashSet<OWLExplanation>();
@@ -284,13 +258,13 @@ public class MyOWLOntology {
         return explanations;
 	}
 	
+	
 	private void startReasoner(){
-		OWLReasonerFactory reasonerFactory = new Reasoner.ReasonerFactory();//new PelletReasonerFactory();//new JFactFactory(); // 
+		OWLReasonerFactory reasonerFactory = new Reasoner.ReasonerFactory(); //ElkReasonerFactory(); new JFactFactory(); //new PelletReasonerFactory(); // 
 		Configuration configuration = new Configuration();
-		//OWLReasonerConfiguration configuration = new SimpleConfiguration();
 		configuration.ignoreUnsupportedDatatypes = true;
-		//configuration.tableauMonitorType = TableauMonitorType.TIMING;
-		reasoner =  reasonerFactory.createReasoner(o, configuration);//reasonerFactory.createReasoner(o); //new Reasoner(o);
+		configuration.throwInconsistentOntologyException = false;
+		reasoner =  reasonerFactory.createReasoner(o, configuration);
         reasoner.precomputeInferences(InferenceType.CLASS_ASSERTIONS);
         reasoner.precomputeInferences(InferenceType.CLASS_HIERARCHY);
         reasoner.precomputeInferences(InferenceType.OBJECT_PROPERTY_HIERARCHY);
@@ -298,8 +272,6 @@ public class MyOWLOntology {
         reasoner.precomputeInferences(InferenceType.DISJOINT_CLASSES);
         ExplanationGeneratorFactory<OWLAxiom> genFac = ExplanationManager.createExplanationGeneratorFactory(reasonerFactory);
         expl = genFac.createExplanationGenerator(o);
-        //ExplanationProgressMonitor explMonitor = new SilentExplanationProgressMonitor();
-        //expl = new DefaultExplanationGenerator(o.getOWLOntologyManager(), reasonerFactory, o, reasoner, explMonitor);
 	}
 	
 	public void restartReasoner()
@@ -321,12 +293,24 @@ public class MyOWLOntology {
 	public OWLConcept getOWLConcept (String uri)
 	{
 		OWLConcept con = concepts.get(uri);
-		/*if (con == null)
+		if (con == null)
 		{
 			con = new OWLConcept(factory.getOWLClass(IRI.create(uri)), this);
 			concepts.put(uri, con);
-		}*/
+		}
 		return con;
+	}
+	
+	public Set<OWLConcept> getSubConcepts(OWLConcept c)
+	{
+		Set<OWLClass> classes = reasoner.getSubClasses(c.getOWLClass(), false).getFlattened();
+		Set<OWLConcept> subConcepts = new HashSet<OWLConcept>();
+		for (Iterator<OWLClass> i = classes.iterator(); i.hasNext();)
+		{
+			OWLClass cl = i.next();
+			subConcepts.add(this.getOWLConcept(cl.toStringID()));
+		}
+		return subConcepts;
 	}
 	
 	public OWLClass getOWLClass (String uri)
@@ -334,9 +318,24 @@ public class MyOWLOntology {
 		return factory.getOWLClass(IRI.create(uri));
 	}
 	
+	public OWLNamedIndividual getOWLIndividual (String uri)
+	{
+		return factory.getOWLNamedIndividual(IRI.create(uri));
+	}
+	
 	public boolean isSatisfiable(OWLClass cl)
 	{
 		return reasoner.isSatisfiable(cl);
+	}
+	
+	public boolean isSubClassOf(OWLClass sub, OWLClass sup)
+	{
+		return reasoner.getSuperClasses(sub, false).containsEntity(sup);
+	}
+	
+	public boolean isOfType(OWLNamedIndividual ind, OWLClass c)
+	{
+		return reasoner.getTypes(ind, false).containsEntity(c);
 	}
 
 	public Set<OWLRelation> getRelations() {
@@ -352,11 +351,8 @@ public class MyOWLOntology {
 	{
 		return factory.getOWLObjectProperty(IRI.create(uri));
 	}
-	/*public void setRelations(Set<OWLRelation> relations) {
-		this.relations = relations;
-	}*/
 	
-	private <T> T profLCS (Set<T> setX, Set<T> setY, T x, T y)
+	private <T,S> T profLCS (Set<T> setX, Set<T> setY, T x, T y)
 	{
 		if (x == y)
 			return x;
@@ -399,6 +395,18 @@ public class MyOWLOntology {
 		return 1-dtax;
 	}
 	
+	public OWLConcept getLCS(OWLConcept a, OWLConcept b)
+	{
+		OWLClass x = a.getOWLClass(), y = b.getOWLClass();
+		Set<OWLClass> setX = reasoner.getSuperClasses(x, false).getFlattened();
+		setX.add(x);
+		Set<OWLClass> setY = reasoner.getSuperClasses(y, false).getFlattened();
+		setY.add(y);
+		OWLClass lcs = profLCS(setX, setY, x, y);
+		return this.getOWLConcept(lcs.toStringID());
+	}
+	
+	
 	public double taxonomicClassSimilarity (OWLClass x, OWLClass y)
 	{
 		Set<OWLClass> setX = reasoner.getSuperClasses(x, false).getFlattened();
@@ -418,7 +426,59 @@ public class MyOWLOntology {
 		
 		OWLClass lcs = profLCS(setX, setY, x, y);
 		double profLCS = prof(lcs);
-		//OWLClass root = factory.getOWLThing();
+		
+		double dxa = dist(x, lcs);
+		double dxroot = profLCS + dxa;//dist(x, root);
+		double dya = dist(y, lcs);
+		double dyroot = profLCS + dya;//dist(y, root);
+		double num = dxa + dya;
+		double den = dxroot + dyroot;
+		double dtax = num/den;
+		dtax = 1.0 - dtax;
+		
+		/*System.out.println(lcs +  " " + profLCS);
+		System.out.println(dxa + " " + dya);
+		System.out.println(x + " " + y + " " + dtax);*/
+		return dtax;
+	}
+	
+	public double taxonomicIndividualSimilarity (OWLLogicalEntity x, OWLLogicalEntity y)
+	{
+		Set<OWLClass> setX;
+		Set<OWLClass> setY;
+		OWLClass lcs = null;
+		if (x.isOWLNamedIndividual() && y.isOWLNamedIndividual())
+		{
+			setX = reasoner.getTypes(x.asOWLNamedIndividual(), false).getFlattened();
+			setY = reasoner.getTypes(y.asOWLNamedIndividual(), false).getFlattened();
+			lcs = profLCS(setX, setY, setX.iterator().next(), null);
+		}
+		
+		if (x.isOWLClass() && y.isOWLClass())
+		{
+			OWLClass xC = x.asOWLClass();
+			OWLClass yC = y.asOWLClass();
+			setX = reasoner.getSuperClasses(xC, false).getFlattened();
+			setX.add(xC);
+			setY = reasoner.getSuperClasses(yC, false).getFlattened();
+			setY.add(yC);
+			lcs = profLCS(setX, setY, xC, yC);
+		}
+		
+		
+		
+		//=======================Only for ComparisonCosine
+		//OWLClass obsolete = factory.getOWLClass(IRI.create("http://www.geneontology.org/formats/oboInOwl#ObsoleteClass"));
+		/*OWLAnnotationProperty deprecated = factory.getOWLAnnotationProperty(IRI.create("http://www.w3.org/2002/07/owl#deprecated"));
+		Set<OWLAnnotation> annX = x.getAnnotations(o, deprecated);
+		if (annX.iterator().next().isDeprecatedIRIAnnotation())
+			System.out.println("Deprecated");*/
+		//if (setX.contains(obsolete) || setY.contains(obsolete))
+		//	return 0;
+		//=======================END
+		
+		
+		double profLCS = prof(lcs);
 		
 		double dxa = dist(x, lcs);
 		double dxroot = profLCS + dxa;//dist(x, root);
@@ -553,6 +613,17 @@ public class MyOWLOntology {
 		return max;
 	}
 	
+	public String getLabel(OWLConcept c)
+	{
+		OWLClass x = c.getOWLClass();
+		OWLAnnotationProperty label = factory.getOWLAnnotationProperty(IRI.create("http://www.w3.org/2000/01/rdf-schema#label"));
+		Set<OWLAnnotation> annX = x.getAnnotations(o, label);
+		OWLAnnotation a = annX.iterator().next(); 
+		OWLLiteral lit = (OWLLiteral) a.getValue();
+		String v = lit.getLiteral();
+		return v;
+	}
+	
 
 	/*public List<OWLAxiom> Fpos_regA (String clA, String prop, String clB)
 	{
@@ -570,51 +641,23 @@ public class MyOWLOntology {
 	
 	public static void main(String[] args)
 	{
-		/*String ontFile = "/home/traverso/Downloads/CESSM/explanationExample1.owl";
-		MyOWLOntology o = new MyOWLOntology(ontFile);
 		
-		OWLConcept a = o.getOWLConcept("http://www.semanticweb.org/traverso/ontologies/2014/11/untitled-ontology-296#E");
-		OWLConcept b = o.getOWLConcept("http://www.semanticweb.org/traverso/ontologies/2014/11/untitled-ontology-296#F");
-		System.out.println(a.similarity(b));*/
-
-		/*Iterator<OWLRelation> j = o.getRelations().iterator();
-		OWLRelation x = j.next();
-		OWLRelation y = j.next();
-		o.similarity(x, y);
-		System.out.println(x + " " + y + " " + o.similarity(x,y));*/
-		//Set<OWLLink> neighborsA = a.getNeighbors();
-		//Set<OWLLink> neighborsB = b.getNeighbors();
+		Map<String, String> ontPrefix = new HashMap<String,String>();
+		ontPrefix.put("src/main/resources/dataset3/", "http://purl.org/obo/owl/GO#");
+		ontPrefix.put("src/main/resources/dataset32014/", "http://purl.obolibrary.org/obo/");
+		String prefix = "src/main/resources/dataset3/";
+		String ontFile = prefix + "goProtein/go.owl";
+		MyOWLOntology o = new MyOWLOntology(ontFile, ontPrefix.get(prefix));//"http://purl.obolibrary.org/obo/");
 		
-		//String ontFile = "src/main/resources/dataset3/goProtein/go_200808-termdb.owl";
-		String ontFile = "src/main/resources/dataset32014/goProtein/go.owl";
-		MyOWLOntology o = new MyOWLOntology(ontFile);
 		
-		//OWLConcept a = o.getOWLConcept("http://purl.obolibrary.org/obo/GO_0016062");
-		//OWLConcept b = o.getOWLConcept("http://purl.obolibrary.org/obo/GO_0016059");
-		
-		OWLConcept a = o.getOWLConcept("http://purl.org/obo/owl/GO#GO_0016062");
-		OWLConcept b = o.getOWLConcept("http://purl.org/obo/owl/GO#GO_0016059");
+		OWLConcept a = o.getOWLConcept(ontPrefix.get(prefix) + "GO_0055114");
+		OWLConcept b = o.getOWLConcept(ontPrefix.get(prefix) + "GO_0030259");
 		System.out.println(b.similarity(a));
 		
 		OWLRelation r1 = o.getOWLRelation("http://purl.org/obo/owl/obo#positively_regulates");
 		OWLRelation r2 = o.getOWLRelation("http://purl.org/obo/owl/obo#regulates");
 		System.out.println(r1.similarity(r2));
-		/*for (Iterator<OWLLink> i = neighborsA.iterator(); i.hasNext();)
-		{
-			OWLLink linkA = i.next();
-			for (Iterator<OWLLink> j = neighborsB.iterator(); j.hasNext();)
-			{
-				OWLLink linkB = j.next();
-				System.out.println(linkA);
-				System.out.println(linkB);
-				System.out.println(linkA.similarity(linkB));
-			}
-		}*/
-	
-		/*List<OWLAxiom> la = o.Fpos_regA("http://www.semanticweb.org/traverso/ontologies/2014/11/untitled-ontology-296#G", "http://www.semanticweb.org/traverso/ontologies/2014/10/untitled-ontology-281#positively_regulates","http://www.semanticweb.org/traverso/ontologies/2014/11/untitled-ontology-296#A");
-		List<OWLAxiom> lb = o.Fpos_regA("http://www.semanticweb.org/traverso/ontologies/2014/11/untitled-ontology-296#D", "http://www.semanticweb.org/traverso/ontologies/2014/10/untitled-ontology-281#positively_regulates","http://www.semanticweb.org/traverso/ontologies/2014/11/untitled-ontology-296#A");
-		SmithWaterman sw = new SmithWaterman();
-        System.out.println(sw.similarity(la, lb, o));*/
+		
 	
 		
 	}
