@@ -3,7 +3,7 @@ package ontologyManagement;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLInverseObjectPropertiesAxiom;
 
-public class MyOWLInverseObjectPropertyAxiom extends MyOWLAxiom1 {
+public class MyOWLInverseObjectPropertyAxiom extends MyOWLAxiom {
 
 	private OWLRelation rel1, rel2;
 	protected MyOWLInverseObjectPropertyAxiom(OWLAxiom b, MyOWLOntology onto) {
@@ -12,7 +12,7 @@ public class MyOWLInverseObjectPropertyAxiom extends MyOWLAxiom1 {
 		rel2 = o.getOWLRelation(((OWLInverseObjectPropertiesAxiom) b).getSecondProperty().asOWLObjectProperty().toStringID());
 	}
 	
-	public double similarity(MyOWLAxiom1 baxiom, OWLConcept origin, OWLConcept destiny) throws Exception {
+	public double similarity(MyOWLAxiom baxiom, OWLConcept origin, OWLConcept destiny) throws Exception {
 			
 			MyOWLInverseObjectPropertyAxiom b;
 			if (baxiom.getClass() != this.getClass())

@@ -1,4 +1,4 @@
-package similarity;
+package similarity.matching;
 
 import java.util.Arrays;
 
@@ -237,8 +237,7 @@ public class HungarianAlgorithm {
 	protected void greedyMatch() {
 		for (int w = 0; w < dim; w++) {
 			for (int j = 0; j < dim; j++) {
-				if (matchJobByWorker[w] == -1
-						&& matchWorkerByJob[j] == -1
+				if (matchJobByWorker[w] == -1 && matchWorkerByJob[j] == -1
 						&& costMatrix[w][j] - labelByWorker[w] - labelByJob[j] == 0) {
 					match(w, j);
 				}

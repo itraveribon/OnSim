@@ -3,7 +3,7 @@ package ontologyManagement;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLTransitiveObjectPropertyAxiom;
 
-public class MyOWLTransitiveObjectPropertyAxiom extends MyOWLAxiom1 {
+public class MyOWLTransitiveObjectPropertyAxiom extends MyOWLAxiom {
 	private OWLRelation rel;
 	public MyOWLTransitiveObjectPropertyAxiom(OWLAxiom baxiom, MyOWLOntology o)
 	{
@@ -11,7 +11,7 @@ public class MyOWLTransitiveObjectPropertyAxiom extends MyOWLAxiom1 {
 		rel = o.getOWLRelation(((OWLTransitiveObjectPropertyAxiom) baxiom).getProperty().asOWLObjectProperty().toStringID());
 	}
 	@Override
-	public double similarity(MyOWLAxiom1 baxiom, OWLConcept origin,
+	public double similarity(MyOWLAxiom baxiom, OWLConcept origin,
 			OWLConcept destiny) throws Exception {
 		
 		if (baxiom.getClass() != this.getClass())

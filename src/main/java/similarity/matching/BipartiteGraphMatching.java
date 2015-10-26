@@ -1,22 +1,25 @@
-package similarity;
+package similarity.matching;
 
 import java.util.Collections;
 import java.util.Set;
+
+import ontologyManagement.MyOWLLogicalEntity;
 import ontologyManagement.OWLConcept;
 import ontologyManagement.OWLLink;
+import similarity.ComparableElement;
 
-public class AnnSim {
+public class BipartiteGraphMatching {
 	ComparableElement[] v1, v2;
 	double[][] costMatrix;
 	int[] assignment;
 	//Map<ComparableElement,ComparableElement> map;
 	
-	public AnnSim()
+	public BipartiteGraphMatching()
 	{
 		//map = new HashMap<ComparableElement,ComparableElement>();
 	}
-		
-	public <T> double matching(Set<T> a, Set<T> b, OWLConcept orig, OWLConcept des) throws Exception
+	
+	public <T> double matching(Set<T> a, Set<T> b, MyOWLLogicalEntity orig, MyOWLLogicalEntity des) throws Exception
 	{
 		if (a.getClass() != b.getClass() && a != Collections.emptySet() && b != Collections.emptySet())// || !(a instanceof Set<ComparableElement>)))// || !(a instanceof Set<ComparableElement>))
 			throw new Exception("Invalid comparison between " + a.getClass() + " " + b.getClass());
@@ -35,12 +38,14 @@ public class AnnSim {
 				for (int j = 0; j < v2.length; j++)
 				{
 					ComparableElement s2 = v2[j];
+					//System.out.println(s1 + " " + s2);
 					costMatrix[i][j] = 1 - s1.similarity(s2,orig,des); //The hungarian algorithm minimize. Therefore we convert the similarity in distance
-					//System.out.println(s1.toString().replaceAll("http://purl.obolibrary.org/obo/", "") + "\t" + s2.toString().replaceAll("http://purl.obolibrary.org/obo/", "") + "\t" + (1-costMatrix[i][j]));
 				}
 			}
 			HungarianAlgorithm hungarn = new HungarianAlgorithm(costMatrix);
 			assignment = hungarn.execute();
+			//SSP ssp = new SSP(costMatrix);
+			//assignment = ssp.execute();
 			
 			double sim = 0;
 			for (int i = 0; i < assignment.length; i++)
@@ -49,35 +54,12 @@ public class AnnSim {
 				//System.out.println(v1[i]);
 				if (aux >=0) //If there is an assignment
 				{
-					//System.out.println(v2[aux]);
+					//System.out.println(v1[i] + "\t" + v2[aux] + "\t" + (1-costMatrix[i][aux]));
 					//map.put(v1[i], v2[aux]);
-					double print = 1-costMatrix[i][aux];
-					
-					//System.out.println(((OWLConcept) v1[i]).getName() + "\t" + ((OWLConcept) v2[aux]).getName() + "\t" + print);
-					/*if (v1[i] instanceof OWLLink)
-					{
-						System.out.println(((OWLLink) v1[i]).getExplanations());
-						System.out.println();
-						System.out.println(((OWLLink) v2[aux]).getExplanations());
-					}*/
 					sim += 1-costMatrix[i][aux];
 				}
 			}
-			/*int dum = 0;
-			for (int i = 0; i < v1.length; i++)
-			{
-				int aux = assignment[i];
-				if (aux >=0) //If there is an assignment
-				{
-					System.out.println(((OWLConcept) v1[i]).getName() + "-1" + "\t" + ((OWLConcept) v2[aux]).getName() + "-2");
-				}
-				else
-				{
-					System.out.println(((OWLConcept) v1[i]).getName() + "-1" + "\t" + "DUMMY" + dum);
-					dum++;
-				}
-			}*/
-			return 2*sim/(v1.length+v2.length);
+			return 2*sim/(2*Math.max(v1.length, v2.length));  //(v1.length+v2.length);//Maybe it should not be divided by sum of sizes, but by the maximum size of the two parts of the graph. So we penalize the not matched nodes
 		}
 	}
 	
@@ -86,4 +68,3 @@ public class AnnSim {
 		return map;
 	}*/
 }
-

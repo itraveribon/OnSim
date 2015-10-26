@@ -20,10 +20,57 @@ import java.util.Set;
 
 import ontologyManagement.MyOWLOntology;
 import ontologyManagement.OWLConcept;
-import similarity.AnnSim;
-import similarity.BipartiteGraphMatching;
+import ontologyManagement.OWLExplanation;
+import ontologyManagement.OWLLink;
+import similarity.Annotation;
+import similarity.matching.AnnSim;
+import similarity.matching.BipartiteGraphMatching;
 
 public class DatasetTest {
+	
+	/*public static Map<OWLConcept, Map<OWLConcept, Integer>> getComparisonMap(List<ComparisonResult> comparisons, MyOWLOntology o)
+	{
+		Map<OWLConcept, Map<OWLConcept, Integer>> owlConceptComparisons = new HashMap<OWLConcept, Map<OWLConcept, Integer>>();
+		for (Iterator<ComparisonResult> i = comparisons.iterator(); i.hasNext();)
+		{
+			ComparisonResult comp = i.next();
+			Set<OWLConcept> a = getConceptAnnotations(comp.getConceptA(), "src/main/resources/dataset3/cellular_annt", o);
+			Set<OWLConcept> b = getConceptAnnotations(comp.getConceptB(), "src/main/resources/dataset3/cellular_annt", o);
+			for (Iterator<OWLConcept> j = a.iterator(); j.hasNext();)
+			{
+				OWLConcept c = j.next();
+				if (owlConceptComparisons.get(c) == null)
+				{
+					owlConceptComparisons.put(c, new HashMap<OWLConcept, Integer>());
+				}
+				Map<OWLConcept, Integer> pairsA = owlConceptComparisons.get(c);
+				for (Iterator<OWLConcept> k = b.iterator(); k.hasNext();)
+				{
+					OWLConcept d = k.next();
+					if (pairsA.get(d) == null)
+					{
+						pairsA.put(d, 0);
+					}
+					pairsA.put(d, pairsA.get(d) + 1);
+					if (owlConceptComparisons.get(d) == null)
+					{
+						owlConceptComparisons.put(d, new HashMap<OWLConcept, Integer>());
+					}
+					if (c != d)
+					{
+						Map<OWLConcept, Integer> pairsB = owlConceptComparisons.get(d);
+						if (pairsB.get(c) == null)
+						{
+							pairsB.put(c, 0);
+						}
+						pairsB.put(c, pairsB.get(c) + 1);
+					}
+				}
+			}
+		}
+		return owlConceptComparisons;
+	}*/
+	
 	
 	public static Map<OWLConcept, Integer> getComparisonMap(List<ComparisonResult> comparisons, MyOWLOntology o)
 	{
@@ -35,8 +82,8 @@ public class DatasetTest {
 			for (Iterator<ComparisonResult> i = comparisons.iterator(); i.hasNext();)
 			{
 				ComparisonResult comp = i.next();
-				Set<OWLConcept> a = getConceptAnnotations(comp.getConceptA(), file, o);
-				Set<OWLConcept> b = getConceptAnnotations(comp.getConceptB(), file, o);
+				Set<OWLConcept> a = getConceptAnnotations(comp.getConceptA(), file, o, true);
+				Set<OWLConcept> b = getConceptAnnotations(comp.getConceptB(), file, o, true);
 				for (Iterator<OWLConcept> j = a.iterator(); j.hasNext();)
 				{
 					OWLConcept c = j.next();
@@ -90,49 +137,78 @@ public class DatasetTest {
 			owlConceptComparisons.remove(i.next());
 	}
 	
+	public static Set<OWLConcept> getOntologyTerms(List<ComparisonResult> comparisons, String[] files, MyOWLOntology o)
+	{
+		Set<String> proteins = new HashSet<String>();
+		Set<OWLConcept> anns = new HashSet<OWLConcept>();
+		for (Iterator<ComparisonResult> i = comparisons.iterator(); i.hasNext();)
+		{
+			ComparisonResult cR = i.next();
+			proteins.add(cR.getConceptA());
+			proteins.add(cR.getConceptB());
+		}
+		for (Iterator<String> i = proteins.iterator(); i.hasNext();)
+		{
+			String p = i.next();
+			for (String file:files)
+			{
+				anns.addAll(DatasetTest.getConceptAnnotations(p, file, o, true));
+			}
+		}
+		return anns;
+	}
 	
 	public static void main (String[] args) throws Exception
 	{
 		Map<String, String> ontPrefix = new HashMap<String,String>();
 		ontPrefix.put("src/main/resources/dataset3/", "http://purl.org/obo/owl/GO#");
-		String prefix = "src/main/resources/dataset3/";
-		String ontFile = prefix + "goProtein/go.owl";
-		
-		MyOWLOntology o = new MyOWLOntology(ontFile, ontPrefix.get(prefix));
-		String comparisonFile = "src/main/resources/dataset3/proteinpairs.txt";
-
-		List<ComparisonResult> comparisons = readComparisonFile(comparisonFile);
-		PrintWriter generalWriter = new PrintWriter("results.txt", "UTF-8");
-		int counter = 0, total = comparisons.size();
-
-		String[] files = {"src/main/resources/dataset3/process_annt"};
-		Map<String, PrintWriter> writers = new HashMap<String, PrintWriter>();
-		for (int i = 0; i < files.length; i++)
+		ontPrefix.put("src/main/resources/dataset32014/", "http://purl.obolibrary.org/obo/");
+		ontPrefix.put("src/main/resources/DILS2015/annt_goa_2008/", "http://purl.org/obo/owl/GO#");
+		ontPrefix.put("src/main/resources/DILS2015/annt_goa_2010/", "http://purl.obolibrary.org/obo/");
+		ontPrefix.put("src/main/resources/DILS2015/annt_goa_2012/", "http://purl.obolibrary.org/obo/");
+		ontPrefix.put("src/main/resources/DILS2015/annt_goa_2014/", "http://purl.obolibrary.org/obo/");
+		String[] p = {"src/main/resources/dataset3/"};
+		for (String prefix: p)
 		{
-			writers.put(files[i], new PrintWriter("results" + i +".txt", "UTF-8"));
-		}
-		for (Iterator<ComparisonResult> i = comparisons.iterator(); i.hasNext();)
-		{
-			ComparisonResult comp = i.next();
-			double sim = 0;
-			for (String file:files)
+			String ontFile = prefix + "goProtein/goEL.owl";
+			MyOWLOntology o = new MyOWLOntology(ontFile, ontPrefix.get(prefix));
+			String comparisonFile = prefix + "proteinpairs.txt";
+			List<ComparisonResult> comparisons = readComparisonFile(comparisonFile);
+			//String[] files = {"src/main/resources/dataset3/cellular_annt", "src/main/resources/dataset3/molecularFunction_annt", "src/main/resources/dataset3/process_annt"};
+			String[] files = {prefix + "bp"};
+			
+			
+			/*double startRelTime = System.nanoTime();
+			Set<OWLConcept> anns = getOntologyTerms(comparisons, files, o);
+			o.setOWLLinks(anns);
+			double estimatedRelTime = (System.nanoTime() - startRelTime)/1000000;
+			System.out.println(estimatedRelTime/1000/60);*/
+			PrintWriter generalWriter = new PrintWriter(prefix + "results.txt", "UTF-8");
+			//generalWriter.println("Protein1\tProtein2\tSimilarity");
+			int counter = 0, total = comparisons.size();
+			for (Iterator<ComparisonResult> i = comparisons.iterator(); i.hasNext();)
 			{
-				Set<OWLConcept> a = getConceptAnnotations(comp.getConceptA(), file, o);
-				Set<OWLConcept> b = getConceptAnnotations(comp.getConceptB(), file, o);
-				AnnSim bpm = new AnnSim();
-				double aux = bpm.matching(a, b, null, null); 
-				String s = comp.getConceptA() + "\t" + comp.getConceptB() + "\t" + aux;
-				writers.get(file).println(s);
-				sim += aux;
+				ComparisonResult comp = i.next();
+				double sim = 0;
+				double totalEstimatedTime = 0;
+				for (String file:files)
+				{
+					Set<OWLConcept> a = getConceptAnnotations(comp.getConceptA(), file, o, true);
+					Set<OWLConcept> b = getConceptAnnotations(comp.getConceptB(), file, o, true);
+					double startTime = System.nanoTime();  
+					AnnSim bpm = new AnnSim();
+					double aux = bpm.matching(a, b, null, null);
+					double estimatedTime = System.nanoTime() - startTime;
+					totalEstimatedTime += estimatedTime/1000000;
+					sim += aux;
+				}
+				comp.setSimilarity(sim/files.length);
+				System.out.println(comp + "\t" + totalEstimatedTime + "\t" + counter++ + "/" + total);
+				generalWriter.println(comp + "\t" + totalEstimatedTime);
 			}
-			comp.setSimilarity(sim/files.length);
-			System.out.println(comp + "\t" + counter++ + "/" + total);
-			generalWriter.println(comp);
-		}
-		generalWriter.close();
-		for (String file: files)
-		{
-			writers.get(file).close();
+			generalWriter.close();
+			//System.out.println(estimatedRelTime);
+			o.disposeReasoner();
 		}
 		
 	}
@@ -182,16 +258,16 @@ public class DatasetTest {
 		return setFile;
 	}
 	
-	public static Set<OWLConcept> getConceptAnnotations(String conceptName, String folder, MyOWLOntology o)
+	public static Set<OWLConcept> getConceptAnnotations(String conceptName, String folder, MyOWLOntology o, boolean iea)
 	{
 		File f = new File(folder + "/" + conceptName);
 		if (f.exists())
-			return getAnnotations(f,o);
+			return getAnnotations(f,o, iea);
 		
 		return new HashSet<OWLConcept>();
 	}
 	
-	public static Set<OWLConcept> getAnnotations(File f, MyOWLOntology o)
+	public static Set<OWLConcept> getAnnotations(File f, MyOWLOntology o, boolean iea)
 	{
 		InputStream    fis;
 		BufferedReader br;
@@ -206,11 +282,23 @@ public class DatasetTest {
 			int numAnnotations = Integer.parseInt(line);
 			for (int i = 0; i < numAnnotations; i++){
 				line = br.readLine();
-				line = line.split("\t")[0];
-				String element = o.getOntologyPrefix() + line.replace(":", "_");
-			    OWLConcept c = o.getOWLConcept(element);
-			    if (c != null)
-			    	annotations.add(c);
+				String term = line.split("\t")[0];
+				String evidence = "KKK";//line.split("\t")[1];
+				
+				/*String notAnn = line.split("\t")[2];
+				boolean not = false;
+				if (!notAnn.isEmpty())
+					not = true;*/
+			    //String element = "http://purl.org/obo/owl/GO#" + line.replace(":", "_");
+				//String element = "http://purl.obolibrary.org/obo/" + line.replace(":", "_");
+				if (iea || (!iea && !evidence.matches("IEA"))) 
+				{
+					String element = o.getOntologyPrefix() + term.replace(":", "_");
+					OWLConcept c = o.getOWLConcept(element);
+					if (c != null)
+						annotations.add(c);
+				}
+			   // Annotation a = new Annotation(c, evidence, not);
 			}
 
 			// Done with the file
@@ -224,5 +312,6 @@ public class DatasetTest {
 		}
 		return annotations;
 	}
+	
 
 }

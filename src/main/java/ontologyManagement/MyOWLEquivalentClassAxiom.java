@@ -7,9 +7,9 @@ import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLEquivalentClassesAxiom;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 
-import similarity.BipartiteGraphMatching;
+import similarity.matching.BipartiteGraphMatching;
 
-public class MyOWLEquivalentClassAxiom extends MyOWLAxiom1 {
+public class MyOWLEquivalentClassAxiom extends MyOWLAxiom {
 
 	private Set<MyOWLSubClassOfAxiom> myAxioms;
 	
@@ -25,7 +25,7 @@ public class MyOWLEquivalentClassAxiom extends MyOWLAxiom1 {
 		}
 	}
 	
-	public double similarity(MyOWLAxiom1 baxiom, OWLConcept origin, OWLConcept destiny) throws Exception {
+	public double similarity(MyOWLAxiom baxiom, OWLConcept origin, OWLConcept destiny) throws Exception {
 		
 		MyOWLEquivalentClassAxiom b;
 		if (baxiom.getClass() != this.getClass())

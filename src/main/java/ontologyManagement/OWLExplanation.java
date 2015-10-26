@@ -13,33 +13,33 @@ import org.semanticweb.owlapi.model.OWLSubObjectPropertyOfAxiom;
 import org.semanticweb.owlapi.model.OWLSubPropertyChainOfAxiom;
 import org.semanticweb.owlapi.model.OWLTransitiveObjectPropertyAxiom;
 
-import similarity.BipartiteGraphMatching;
 import similarity.ComparableElement;
+import similarity.matching.BipartiteGraphMatching;
 
 public class OWLExplanation implements ComparableElement{
 
 	//The aim of this Map is to avoid creating new OWLAxioms when they were already created
-	private static Map<Integer, MyOWLAxiom1> usedAxioms;
+	private static Map<Integer, MyOWLAxiom> usedAxioms;
 	static
 	{
-		usedAxioms = new HashMap<Integer, MyOWLAxiom1>();
+		usedAxioms = new HashMap<Integer, MyOWLAxiom>();
 	}
 	
-	private Set<MyOWLAxiom1> sequence;
+	private Set<MyOWLAxiom> sequence;
 	
 	public OWLExplanation(Set<OWLAxiom> explanation, MyOWLOntology onto) throws Exception
 	{
-		sequence = new HashSet<MyOWLAxiom1>();
+		sequence = new HashSet<MyOWLAxiom>();
 		for (Iterator<OWLAxiom> i = explanation.iterator(); i.hasNext();)
 		{
 			OWLAxiom axiom = i.next();
 			if (axiom.getAxiomType() != AxiomType.EQUIVALENT_CLASSES)
 			{
-				MyOWLAxiom1 insertedAxiom = usedAxioms.get(axiom.hashCode());
+				MyOWLAxiom insertedAxiom = usedAxioms.get(axiom.hashCode());
 					
 				if (insertedAxiom == null)
 				{
-						insertedAxiom = new MyOWLAxiom1(axiom, onto);
+						insertedAxiom = new MyOWLAxiom(axiom, onto);
 						usedAxioms.put(axiom.hashCode(), insertedAxiom);
 				}
 				sequence.add(insertedAxiom);
@@ -59,11 +59,11 @@ public class OWLExplanation implements ComparableElement{
 		return 0.0;
 	}
 
-	public Set<MyOWLAxiom1> getSequence() {
+	public Set<MyOWLAxiom> getSequence() {
 		return sequence;
 	}
 
-	public void setSequence(Set<MyOWLAxiom1> sequence) {
+	public void setSequence(Set<MyOWLAxiom> sequence) {
 		this.sequence = sequence;
 	}
 	
@@ -72,11 +72,10 @@ public class OWLExplanation implements ComparableElement{
 		return sequence.toString();
 	}
 
-	public double similarity(ComparableElement a, OWLConcept org, OWLConcept des) throws Exception {
+	public double similarity(ComparableElement a, MyOWLLogicalEntity org, MyOWLLogicalEntity des) throws Exception {
 		if (!(a instanceof OWLExplanation))
 			throw new Exception("Invalid comparison");
-		return similarity((OWLExplanation)a, org, des);
+		return similarity((OWLExplanation)a, (OWLConcept)org, (OWLConcept)des);
 	}
-	
 	
 }

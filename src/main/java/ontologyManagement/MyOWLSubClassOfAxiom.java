@@ -6,7 +6,7 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLObjectSomeValuesFrom;
 import org.semanticweb.owlapi.model.OWLSubClassOfAxiom;
 
-public class MyOWLSubClassOfAxiom extends MyOWLAxiom1 {
+public class MyOWLSubClassOfAxiom extends MyOWLAxiom {
 	OWLConcept subConcept, superConcept;
 	OWLRelation rel;
 	
@@ -38,7 +38,7 @@ public class MyOWLSubClassOfAxiom extends MyOWLAxiom1 {
 		}
 	}
 	
-	public double similarity(MyOWLAxiom1 baxiom, OWLConcept origin, OWLConcept destiny) throws Exception {
+	public double similarity(MyOWLAxiom baxiom, OWLConcept origin, OWLConcept destiny) throws Exception {
 		MyOWLSubClassOfAxiom b;
 		if (baxiom.getClass() != this.getClass())
 			return 0.0;
@@ -52,14 +52,14 @@ public class MyOWLSubClassOfAxiom extends MyOWLAxiom1 {
 			relSim = rel.similarity(b.rel);
 		//If one is OWLClass and the other is ObjectSomeValuesFrom, relSim = 0
 		
-		if (subConcept == origin && b.subConcept == destiny.getOWLClass() || subConcept == destiny.getOWLClass() && b.subConcept == origin.getOWLClass())
+		if (subConcept == origin && b.subConcept == destiny || subConcept == destiny && b.subConcept == origin)
 			subSim = 1;
 		else
-			subSim = o.taxonomicClassSimilarity(subConcept.getOWLClass(), b.subConcept.getOWLClass());//subConcept.similarity(b.subConcept);
-		if (superConcept == origin && b.superConcept == destiny.getOWLClass() || superConcept == destiny.getOWLClass() && b.superConcept == origin.getOWLClass())
+			subSim = o.taxonomicClassSimilarity(subConcept/*.getOWLClass()*/, b.subConcept/*.getOWLClass()*/);//subConcept.similarity(b.subConcept);
+		if (superConcept == origin && b.superConcept == destiny || superConcept == destiny && b.superConcept == origin)
 			superSim = 1;
 		else
-			superSim = o.taxonomicClassSimilarity(superConcept.getOWLClass(), b.superConcept.getOWLClass());//superConcept.similarity(b.superConcept);
+			superSim = o.taxonomicClassSimilarity(superConcept/*.getOWLClass()*/, b.superConcept/*.getOWLClass()*/);//superConcept.similarity(b.superConcept);
 					
 		return subSim * relSim * superSim;
 		/*if (relSim >= 0)

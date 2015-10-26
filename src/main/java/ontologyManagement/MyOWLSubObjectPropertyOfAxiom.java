@@ -4,7 +4,7 @@ import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLObjectPropertyExpression;
 import org.semanticweb.owlapi.model.OWLSubObjectPropertyOfAxiom;
 
-public class MyOWLSubObjectPropertyOfAxiom extends MyOWLAxiom1 {
+public class MyOWLSubObjectPropertyOfAxiom extends MyOWLAxiom {
 	OWLRelation subProperty, superProperty;
 	public MyOWLSubObjectPropertyOfAxiom(OWLAxiom b , MyOWLOntology onto)
 	{
@@ -16,7 +16,7 @@ public class MyOWLSubObjectPropertyOfAxiom extends MyOWLAxiom1 {
 	}
 	
 	
-	public double similarity(MyOWLAxiom1 baxiom, OWLConcept origin, OWLConcept destiny) throws Exception {
+	public double similarity(MyOWLAxiom baxiom, OWLConcept origin, OWLConcept destiny) throws Exception {
 		
 		MyOWLSubObjectPropertyOfAxiom b;
 		if (baxiom.getClass() != this.getClass())
